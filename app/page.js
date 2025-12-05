@@ -6,7 +6,7 @@ import { Loader2, Copy, Send, Sparkles, CheckCircle } from "lucide-react";
 // ============================================
 // IMPORTANT: Paste your n8n webhook URL below
 // ============================================
-const N8N_WEBHOOK_URL = "YOUR_N8N_WEBHOOK_URL_HERE";
+const N8N_WEBHOOK_URL = "https://redflower.app.n8n.cloud/webhook/generate-postv2";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -48,8 +48,26 @@ export default function Home() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.text();
-      setGeneratedContent(data);
+      // Try to parse as JSON first, fallback to text
+      const responseText = await response.text();
+      let content = responseText;
+
+      try {
+        const jsonData = JSON.parse(responseText);
+        // Extract the actual content from common JSON structures
+        content = jsonData.generatedContent ||
+          jsonData.content ||
+          jsonData.text ||
+          jsonData.output ||
+          jsonData.message ||
+          jsonData.result ||
+          responseText;
+      } catch {
+        // Response is plain text, use as-is
+        content = responseText;
+      }
+
+      setGeneratedContent(content);
     } catch (err) {
       setError("Failed to connect to backend. Please check your webhook URL.");
       console.error("Error:", err);
@@ -78,23 +96,21 @@ export default function Home() {
     setError("");
 
     try {
-      // This sends the content to n8n for publishing
-      const response = await fetch(N8N_WEBHOOK_URL, {
+      // Call our internal API route for publishing
+      const response = await fetch("/api/publish", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          action: "publish",
           content: generatedContent,
-          topic: topic,
-          style: style,
-          length: length,
         }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 
       alert("Post sent to LinkedIn workflow!");
