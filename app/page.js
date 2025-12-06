@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Copy, Send, Sparkles, CheckCircle } from "lucide-react";
+import { useSession, signIn, signOut } from "next-auth/react";
+import { Loader2, Copy, Send, Sparkles, CheckCircle, LogIn, LogOut, Linkedin } from "lucide-react";
 
 // ============================================
 // IMPORTANT: Paste your n8n webhook URL below
@@ -9,6 +10,7 @@ import { Loader2, Copy, Send, Sparkles, CheckCircle } from "lucide-react";
 const N8N_WEBHOOK_URL = "https://redflower.app.n8n.cloud/webhook/generate-postv2";
 
 export default function Home() {
+  const { data: session, status } = useSession();
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState("Professional");
   const [length, setLength] = useState("Medium");
@@ -92,11 +94,16 @@ export default function Home() {
       return;
     }
 
+    if (!session?.accessToken) {
+      setError("No access token available. Please sign in again.");
+      return;
+    }
+
     setIsPublishing(true);
     setError("");
 
     try {
-      // Call our internal API route for publishing
+      // Call our internal API route for publishing with accessToken
       const response = await fetch("/api/publish", {
         method: "POST",
         headers: {
@@ -104,6 +111,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           content: generatedContent,
+          accessToken: session.accessToken,
         }),
       });
 
@@ -122,6 +130,65 @@ export default function Home() {
     }
   };
 
+  // Loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  // Not logged in - show sign in screen
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col items-center justify-center p-4 md:p-8">
+        {/* Decorative background elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-md">
+          {/* Header */}
+          <header className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+              <Sparkles className="w-8 h-8 text-blue-400" />
+              LinkedIn Viral Content Generator
+            </h1>
+            <span className="inline-block px-3 py-1 text-sm font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full">
+              by MHMD STUDIO
+            </span>
+          </header>
+
+          {/* Sign In Card */}
+          <div className="bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 rounded-2xl p-8 shadow-2xl text-center">
+            <Linkedin className="w-16 h-16 text-blue-500 mx-auto mb-6" />
+            <h2 className="text-2xl font-bold text-white mb-3">Welcome!</h2>
+            <p className="text-neutral-400 mb-8">
+              Sign in with your LinkedIn account to generate and publish viral content.
+            </p>
+            <button
+              onClick={() => signIn("linkedin")}
+              className="w-full py-4 bg-[#0077B5] hover:bg-[#006097] text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-3 shadow-lg"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign in with LinkedIn
+            </button>
+          </div>
+
+          {/* Footer */}
+          <footer className="mt-6 text-center">
+            <p className="text-sm text-neutral-500">
+              Powered by <span className="text-blue-400 font-medium">MHMD STUDIO</span> & <span className="text-purple-400 font-medium">Gemini</span>
+            </p>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  // Logged in - show generator
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col items-center justify-center p-4 md:p-8">
       {/* Decorative background elements */}
@@ -131,8 +198,17 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 w-full max-w-2xl">
-        {/* Header */}
+        {/* Header with Sign Out */}
         <header className="text-center mb-8">
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-700/50 border border-neutral-700 rounded-lg transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
             <Sparkles className="w-8 h-8 text-blue-400" />
             LinkedIn Viral Content Generator
@@ -140,6 +216,11 @@ export default function Home() {
           <span className="inline-block px-3 py-1 text-sm font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full">
             by MHMD STUDIO
           </span>
+          {session.user?.name && (
+            <p className="text-neutral-400 text-sm mt-3">
+              Welcome, <span className="text-white font-medium">{session.user.name}</span>
+            </p>
+          )}
         </header>
 
         {/* Main Card */}

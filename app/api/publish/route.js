@@ -7,7 +7,7 @@ const N8N_PUBLISH_WEBHOOK_URL = "YOUR_PUBLISH_WEBHOOK_URL_HERE";
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { content } = body;
+        const { content, accessToken } = body;
 
         if (!content || !content.trim()) {
             return Response.json(
@@ -16,7 +16,14 @@ export async function POST(request) {
             );
         }
 
-        // Send content to n8n publish webhook
+        if (!accessToken) {
+            return Response.json(
+                { error: "No access token provided. Please sign in again." },
+                { status: 401 }
+            );
+        }
+
+        // Send content and accessToken to n8n publish webhook
         const response = await fetch(N8N_PUBLISH_WEBHOOK_URL, {
             method: "POST",
             headers: {
@@ -25,6 +32,7 @@ export async function POST(request) {
             body: JSON.stringify({
                 action: "publish",
                 content: content,
+                accessToken: accessToken,
                 timestamp: new Date().toISOString(),
             }),
         });
