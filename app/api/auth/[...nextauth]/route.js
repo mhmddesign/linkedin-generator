@@ -2,26 +2,26 @@ import NextAuth from "next-auth";
 import LinkedInProvider from "next-auth/providers/linkedin";
 
 export const authOptions = {
-  providers: [
-    LinkedInProvider({
-      clientId: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      // The critical fix for the "iss" error:
-      issuer: "https://www.linkedin.com/oauth",
-      authorization: {
-        params: { scope: "openid profile email" },
-      },
-      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-        };
-      },
-    }),
-  ],
+providers: [
+  LinkedInProvider({
+    clientId: process.env.LINKEDIN_CLIENT_ID,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+    issuer: "https://www.linkedin.com/oauth",
+    authorization: {
+      // ⚠️ CRITICAL: Added 'w_member_social' so we can POST, not just login.
+      params: { scope: "openid profile email w_member_social" },
+    },
+    jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
+    profile(profile) {
+      return {
+        id: profile.sub,
+        name: profile.name,
+        email: profile.email,
+        image: profile.picture,
+      };
+    },
+  }),
+],
   callbacks: {
     async jwt({ token, account }) {
       // Persist the OAuth access_token to the token right after sign in
