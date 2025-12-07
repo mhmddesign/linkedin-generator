@@ -8,6 +8,20 @@ const handler = NextAuth({
             clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
             issuer: "https://www.linkedin.com/oauth",
             authorization: {
+        params: { scope: "openid profile email" },
+      },
+      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+        };
+      },
+    }),
+  ],
+            authorization: {
                 params: {
                     scope: "openid profile email w_member_social",
                 },
@@ -31,4 +45,5 @@ const handler = NextAuth({
     secret: process.env.NEXTAUTH_SECRET,
 });
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
