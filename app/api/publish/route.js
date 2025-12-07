@@ -2,7 +2,7 @@
 // IMPORTANT: Paste your n8n PUBLISH webhook URL below
 // This is a SEPARATE webhook for publishing to LinkedIn
 // ============================================
-const N8N_PUBLISH_WEBHOOK_URL = "YOUR_PUBLISH_WEBHOOK_URL_HERE";
+const N8N_PUBLISH_WEBHOOK_URL = "https://redflower.app.n8n.cloud/webhook/publish-postv2";
 
 export async function POST(request) {
     try {
